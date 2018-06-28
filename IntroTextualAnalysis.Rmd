@@ -1,0 +1,86 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+install.packages(c("ggplot2","e1071","caret","quanteda",
+                   "irlba","randomforest"))
+
+
+#Look up the .CSV data and explore in RStudio
+spam.raw <- read.csv("spam.csv", stringsAsFactors = FALSE, fileEncoding = "UTF-16")
+View(spam.raw)
+
+#Clean up the data frame and view our handiwork
+spam.raw <- spam.raw[,1:2]
+names(spam.raw) <- c("Label", "Text")
+View(spam.raw)
+
+#Check data to see if there are missing values
+length(which(!complete.cases(spam.raw)))
+
+#Convert our class label into a factor
+spam.raw$Label <- as.factor(spam.raw$Label)
+
+#The first step, as always, is to explore the data
+#First, let's take a look at distribution of the class labels
+#(i.e., ham vs. spam)
+prop.table(table(spam.raw$Label))
+
+#Next, let's get a feel for the distribution of text lengths of the SMS
+#messages by adding a new leature for the length of the message
+spam.raw$TextLength <- nchar(spam.raw$Text)
+summary(spam.raw$TextLength)
+
+#Visualize distribution with ggplot2, adding segmentation for ham/spam
+library(ggplot2)
+
+ggplot(spam.raw, aes(x = TextLength, fill = Label)) +
+     theme_bw() +
+     geom_histogram( show.legend= 1, binwidth = 5) +
+     labs(y = "Text Count", x = "Length of Text",
+        title = "Distribution of Text Lengths with Class Labels",
+        subtitle = "yahearddddd")
+
+#At a minimum we need to split up the data into a training and test set
+#In a true project, we owuld want to use a three way split between 
+#training, validation, and test
+#
+#As we know that there's a non trivial class imbalance, we'll use the 
+#mighty caret package to create a random train/test split that ensures the
+#correct ham/spam class label proportions
+
+library(caret)
+help(package = "caret")
+
+#Use caret to create e 70%/30% stratified split. Set the random seed 
+#for reproducibility. 
+#We want a fucntion that randomly sample our data and make sure it's stratified
+
+set.seed(32984)
+indexes <- createDataPartition(spam.raw$Label, times = 1,
+                               p = 0.7, list = FALSE)
+
+indexes <- createDataPartition(spam.raw$Label, times = 1,
+                    p = 0.5, list = TRUE, 
+                    groups = min(5, length(spam.raw$Label)))
+
+train <- spam.raw[indexes,]
+test <- spam.raw[-indexes,]
+
+prop.table(table(train$Label))
+prop.table(table(test$Label))
